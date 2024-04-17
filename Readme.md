@@ -38,30 +38,8 @@ This project is a Node.js application that fetches and parses the latest 6 stori
 
 ---
 
-Feel free to let me know if you need further modifications!
 
-### Installation
 
-1. Clone the repository:
-    ```bash
-    git clone https://github.com/NAVEED476/deep-logic.git
-    ```
-
-2. Navigate to the project directory:
-    ```bash
-    cd timesNewsApi
-    ```
-
-### Usage
-
-1. Start the application:
-    ```bash
-    node app.js
-    ```
-
-2. Access the API endpoint:
-    - Once the server is running, you can access the API endpoint at [http://localhost:3000/latest-stories](http://localhost:3000/latest-stories).
-    - The API returns a JSON response containing the latest 6 stories from Time.com's homepage.
 
 ### Example API Response
 
