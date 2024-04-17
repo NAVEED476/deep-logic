@@ -38,6 +38,7 @@ This project is a Node.js application that fetches and parses the latest 6 stori
 
 ---
 
+![image](https://github.com/NAVEED476/deep-logic/assets/95119749/3e360e36-ded4-434f-b4ff-771ed3208c40)
 
 
 
