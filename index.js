@@ -1,59 +1,78 @@
-const http = require('http');
-const https = require('https');
-const { parse } = require('url');
+const http = require('http'); 
+const https = require('https'); 
 
 // Function to fetch HTML content from a URL
-function fetchHTML(url, callback) {
-    const protocol = url.startsWith('https') ? https : http;
-    protocol.get(url, (response) => {
-        let data = '';
-        response.on('data', (chunk) => {
-            data += chunk;
+function fetchHTML(url) {
+    return new Promise((resolve, reject) => {
+        const clientModule = url.startsWith('https') ? https : http;
+
+        const options = {
+            timeout: 10000, 
+        };
+
+        const req = clientModule.get(url, options, (response) => {
+            let data = '';
+            response.on('data', (chunk) => {
+                data += chunk;
+            });
+            response.on('end', () => {
+                resolve(data);
+            });
         });
-        response.on('end', () => {
-            callback(null, data);
+
+        req.on('err', (err) => {
+            reject(err);
         });
-    }).on('error', (error) => {
-        callback(error, null);
+
+        req.on('timeout', () => {
+            req.destroy(); 
+            reject(new err('Request timed out'));
+        });
     });
 }
 
-// Function to extract latest stories from Time.com
-function extractStories(html) {
-    const stories = [];
-    const regex = /<a class="title" href="([^"]+)">([^<]+)<\/a>/g;
+//  fetch and parse the latest 6 stories from Time.com
+async function getLatestStories() {
+    const url = 'https://time.com/';
+
+    const html = await fetchHTML(url);
+
+    const latestStories = [];
+    let storyCount = 0;
+
+    const regex = /<li class="latest-stories__item">[\s\S]*?<a href="([^"]+)">[\s\S]*?<h3 class="latest-stories__item-headline">([\s\S]*?)<\/h3>/g;
     let match;
-    while (match = regex.exec(html)) {
-        stories.push({
-            title: match[2],
-            link: match[1]
-        });
+
+    while ((match = regex.exec(html)) !== null && storyCount < 6) {
+        const storyUrl = match[1];
+        const title = match[2].trim();
+
+        latestStories.push({ title, url: 'https://time.com' + storyUrl });
+        storyCount++;
     }
-    return stories.slice(0, 6); // Get the latest 6 stories
+
+    return latestStories;
 }
 
-// HTTP server to serve the API
-const server = http.createServer((req, res) => {
-    const { pathname } = parse(req.url);
-    if (pathname === '/getTimeStories') {
-        const url = 'https://time.com';
-        fetchHTML(url, (error, html) => {
-            if (error) {
-                res.writeHead(500, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ error: 'Internal Server Error' }));
-            } else {
-                const stories = extractStories(html);
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify(stories));
-            }
-        });
+
+// Create an HTTP server
+const server = http.createServer(async (req, res) => {
+    if (req.method === 'GET' && req.url === '/latest-stories') {
+        try {
+            const stories = await getLatestStories();
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify(stories));
+        } catch (err) {
+            console.err('err fetching latest stories:', err);
+            res.statusCode = 500;
+            res.end(JSON.stringify({ err: 'Failed to fetch the latest stories.' }));
+        }
     } else {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Not Found' }));
+        res.statusCode = 404;
+        res.end('Not Found');
     }
 });
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+server.listen(3000, () => {
+    console.log(`Server is running`);
 });
